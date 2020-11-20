@@ -34,7 +34,7 @@ class GeneralizedStiefel(EuclideanEmbeddedSubmanifold):
     def inner(self, X, eta, zeta):
         # Inner product (Riemannian metric) on the tangent space
         # For the stiefel this is the Frobenius inner product.
-        return np.trace(eta.T @ self._BB @ zeta)
+        return np.trace(eta.T @ self._B @ zeta)
 
     def proj(self, X, U):
         BXU = (self._B @ X).T @ U
@@ -45,7 +45,7 @@ class GeneralizedStiefel(EuclideanEmbeddedSubmanifold):
         Xdot = H
 
         # Directional derivative of the Riemannian gradient
-        egrad_scaledot = np.inv(self._B) @ egraddot
+        egrad_scaledot = np.linalg.inv(self._B) @ egraddot
         rgraddot = egrad_scaledot
         rgraddot -= Xdot @ _symm(X.T @ egrad)
         rgraddot -= X @ _symm(Xdot.T @ egrad)
@@ -57,7 +57,7 @@ class GeneralizedStiefel(EuclideanEmbeddedSubmanifold):
         # Calculate the generalized qr decomposition of X + G
         A = X + G
         R = np.linalg.cholesky(A.T @ self._B @ A)
-        return A @ np.inv(R)
+        return A @ np.linalg.inv(R)
 
     def norm(self, X, eta):
         return np.sqrt(self.inner(X, eta, eta))
@@ -81,10 +81,10 @@ class GeneralizedStiefel(EuclideanEmbeddedSubmanifold):
         return np.zeros((self._n, self._p))
 
     def _guf(self, X):
-        U, _, V = np.linalg.svd(X)
-        SS, Q = np.linalg.evd(U.T @ self._B @ U)
-        QSinv = Q @ np.inv(np.sqrt(SS))
-        return U @ QSinv @ Q.T @ V.T
+        U, _, VH = np.linalg.svd(X, full_matrices=False)
+        SS, Q = np.linalg.eig(U.T @ self._B @ U)
+        A = Q @ np.linalg.inv(np.diag(np.sqrt(SS))) @ Q.T
+        return U @ A @ VH
 
 
 def _symm(D):
